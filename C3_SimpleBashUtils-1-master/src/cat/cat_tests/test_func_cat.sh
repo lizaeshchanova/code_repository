@@ -1,0 +1,159 @@
+#!/bin/bash
+
+SUCCESS=0
+FAIL=0
+COUNTER=0
+DIFF_RES=""
+
+declare -a tests=(
+"VAR test_case_cat.txt"
+)
+
+declare -a specif=(
+"-s test_1_cat.txt"
+"-b -e -n -s -t test_1_cat.txt"
+"-t test_3_cat.txt"
+"-n test_2_cat.txt"
+"-n -b test_1_cat.txt"
+"-s -n -e test_4_cat.txt"
+"-n test_1_cat.txt"
+"-n test_1_cat.txt"
+"-v test_5_cat.txt"
+)
+flags=(
+    "b"
+    "e"
+    "n"
+    "s"
+    "t"
+    "v"
+)
+
+declare -a  gnu=(
+"-T test_1_cat.txt"
+"-E test_1_cat.txt"
+"--number test_2_cat.txt"
+"--squeeze-blank test_1_cat.txt"
+"--number-nonblank test_4_cat.txt"
+"test_1_cat.txt --number --number"
+)
+
+testing()
+{
+    t=$(echo $@ | sed "s/VAR/$var/")
+    ./../s21_cat $t > test_s21_cat.log
+    cat $t > test_sys_cat.log
+    diff test_s21_cat.log test_sys_cat.log
+    DIFF_RES=$?
+    (( COUNTER++ ))
+    if [ $DIFF_RES == 0 ]
+    then
+      (( SUCCESS++ ))
+        echo "\033[31m$FAIL\033[0m/\033[32m$SUCCESS\033[0m/$COUNTER \033[32msuccess\033[0m cat $t"
+    else
+      (( FAIL++ ))
+        echo "\033[31m$FAIL\033[0m/\033[32m$SUCCESS\033[0m/$COUNTER \033[31mfail\033[0m cat $t"
+    fi
+    rm test_s21_cat.log test_sys_cat.log
+}
+
+# специфические тесты
+for i in "${specif[@]}"
+do
+    var="-"
+    testing $i
+done
+
+# 1 параметр
+for var1 in "${flags[@]}"
+do
+    for i in "${tests[@]}"
+    do
+        var="-$var1"
+        testing $i
+    done
+done
+
+# 2 параметра
+for var1 in "${flags[@]}"
+do
+    for var2 in "${flags[@]}"
+    do
+        if [ $var1 != $var2 ]
+        then
+            for i in "${tests[@]}"
+            do
+                var="-$var1 -$var2"
+                testing $i
+            done
+        fi
+    done
+done
+
+# 3 параметра
+for var1 in "${flags[@]}"
+do
+    for var2 in "${flags[@]}"
+    do
+        for var3 in "${flags[@]}"
+        do
+            if [ $var1 != $var2 ] && [ $var2 != $var3 ] && [ $var1 != $var3 ]
+            then
+                for i in "${tests[@]}"
+                do
+                    var="-$var1 -$var2 -$var3"
+                    testing $i
+                done
+            fi
+        done
+    done
+done
+
+# 4 параметра
+for var1 in "${flags[@]}"
+do
+    for var2 in "${flags[@]}"
+    do
+        for var3 in "${flags[@]}"
+        do
+            for var4 in "${flags[@]}"
+            do
+                if [ $var1 != $var2 ] && [ $var2 != $var3 ] \
+                && [ $var1 != $var3 ] && [ $var1 != $var4 ] \
+                && [ $var2 != $var4 ] && [ $var3 != $var4 ]
+                then
+                    for i in "${tests[@]}"
+                    do
+                        var="-$var1 -$var2 -$var3 -$var4"
+                        testing $i
+                    done
+                fi
+            done
+        done
+    done
+done
+
+echo "\033[31mFAIL: $FAIL\033[0m"
+echo "\033[32mSUCCESS: $SUCCESS\033[0m"
+echo "ALL: $COUNTER"
+printf "\n"
+
+echo "^^^^^^^^^^^^^^^^^^^^^^^"
+echo "TESTS WITH GNU FLAGS"
+echo "^^^^^^^^^^^^^^^^^^^^^^^"
+printf "\n"
+FAIL=0
+SUCCESS=0
+COUNTER=0
+
+for i in "${gnu[@]}"
+do
+    var="-"
+    testing $i
+done
+printf "\n"
+
+echo "\033[31mFAIL: $FAIL\033[0m"
+echo "\033[32mSUCCESS: $SUCCESS\033[0m"
+echo "ALL: $COUNTER"
+
